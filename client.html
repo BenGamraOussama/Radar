@@ -1,66 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test API Flask</title>
+    <title>Test API Flask - Enhanced Client</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 700px;
             margin: 0 auto;
             padding: 20px;
+            background: #f4f7f8;
+            color: #333;
         }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        h1 {
+            text-align: center;
+            color: #2c3e50;
         }
-        input {
+        form {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: block;
+            color: #34495e;
+        }
+        input[type="number"] {
+            width: 100%;
             padding: 8px;
             font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        input[type="number"]:focus {
+            border-color: #2980b9;
+            outline: none;
+        }
+        .tooltip {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 2px;
         }
         button {
-            background: #4CAF50;
+            grid-column: span 4;
+            background: #27ae60;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 12px;
+            font-size: 18px;
             cursor: pointer;
-            font-size: 16px;
+            border-radius: 6px;
+            transition: background 0.3s ease;
         }
         button:hover {
-            background: #45a049;
+            background: #219150;
         }
         #response {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            min-height: 50px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 80px;
         }
         .error {
-            color: red;
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        .result-label {
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        .prob-bar {
+            height: 20px;
+            background: #3498db;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: width 0.5s ease;
+        }
+        .prob-container {
+            margin-bottom: 15px;
+        }
+        .prob-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #34495e;
         }
     </style>
 </head>
 <body>
-    <h1>Testeur d'API Flask</h1>
-    
-    <div class="container">
-        <label for="dataInput">Entrez des nombres séparés par des virgules :</label>
-        <input type="text" id="dataInput" value="1.1, 1.2, 1.3, 1.4">
-        <button id="predictButton">Lancer la prédiction</button>
-    </div>
-    
+    <h1>API Prediction Client</h1>
+    <form id="predictionForm" novalidate>
+        <div>
+            <label for="D0">Feature D0</label>
+            <input type="number" id="D0" name="D0" step="any" required>
+            <div class="tooltip">Enter value for feature D0</div>
+        </div>
+        <div>
+            <label for="D1">Feature D1</label>
+            <input type="number" id="D1" name="D1" step="any" required>
+            <div class="tooltip">Enter value for feature D1</div>
+        </div>
+        <div>
+            <label for="D2">Feature D2</label>
+            <input type="number" id="D2" name="D2" step="any" required>
+            <div class="tooltip">Enter value for feature D2</div>
+        </div>
+        <div>
+            <label for="D3">Feature D3</label>
+            <input type="number" id="D3" name="D3" step="any" required>
+            <div class="tooltip">Enter value for feature D3</div>
+        </div>
+        <div>
+            <label for="D4">Feature D4</label>
+            <input type="number" id="D4" name="D4" step="any" required>
+            <div class="tooltip">Enter value for feature D4</div>
+        </div>
+        <div>
+            <label for="D5">Feature D5</label>
+            <input type="number" id="D5" name="D5" step="any" required>
+            <div class="tooltip">Enter value for feature D5</div>
+        </div>
+        <div>
+            <label for="D6">Feature D6</label>
+            <input type="number" id="D6" name="D6" step="any" required>
+            <div class="tooltip">Enter value for feature D6</div>
+        </div>
+        <div>
+            <label for="D7">Feature D7</label>
+            <input type="number" id="D7" name="D7" step="any" required>
+            <div class="tooltip">Enter value for feature D7</div>
+        </div>
+        <button type="submit">Run Prediction</button>
+    </form>
     <div id="response"></div>
 
     <script>
-        document.getElementById('predictButton').addEventListener('click', async () => {
-            const input = document.getElementById('dataInput').value;
-            const responseDiv = document.getElementById('response');
-            responseDiv.innerHTML = 'Envoi en cours...';
-            
+        const form = document.getElementById('predictionForm');
+        const responseDiv = document.getElementById('response');
+
+        function createProbBar(label, value) {
+            const container = document.createElement('div');
+            container.className = 'prob-container';
+
+            const probLabel = document.createElement('div');
+            probLabel.className = 'prob-label';
+            probLabel.textContent = label + ': ' + (value * 100).toFixed(2) + '%';
+
+            const bar = document.createElement('div');
+            bar.className = 'prob-bar';
+            bar.style.width = (value * 100) + '%';
+
+            container.appendChild(probLabel);
+            container.appendChild(bar);
+
+            return container;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            responseDiv.innerHTML = '';
+
+            // Validate inputs
+            const data = [];
+            let valid = true;
+            for (let i = 0; i < 8; i++) {
+                const input = form['D' + i];
+                const val = parseFloat(input.value);
+                if (isNaN(val)) {
+                    valid = false;
+                    input.style.borderColor = '#e74c3c';
+                } else {
+                    input.style.borderColor = '#ccc';
+                    data.push(val);
+                }
+            }
+            if (!valid) {
+                responseDiv.innerHTML = '<div class="error">Please enter valid numbers for all features.</div>';
+                return;
+            }
+
+            responseDiv.innerHTML = 'Sending prediction request...';
+
             try {
-                // Convertir l'input en tableau de nombres
-                const data = input.split(',').map(item => parseFloat(item.trim()));
-                
                 const response = await fetch('http://localhost:5000/predict', {
                     method: 'POST',
                     headers: {
@@ -70,23 +202,32 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (!response.ok) {
-                    throw new Error(result.error || 'Erreur inconnue');
+                    throw new Error(result.error || 'Unknown error');
                 }
-                
-                responseDiv.innerHTML = `
-                    <strong>Résultat :</strong><br>
-                    <pre>${JSON.stringify(result, null, 2)}</pre>
-                `;
+
+                // Display prediction result
+                responseDiv.innerHTML = '';
+                const predLabel = document.createElement('div');
+                predLabel.className = 'result-label';
+                predLabel.textContent = 'Predicted Class: ' + result.prediction.predicted_class;
+                responseDiv.appendChild(predLabel);
+
+                if (result.prediction.probabilities && result.prediction.probabilities.length > 0) {
+                    const probTitle = document.createElement('div');
+                    probTitle.className = 'result-label';
+                    probTitle.textContent = 'Class Probabilities:';
+                    responseDiv.appendChild(probTitle);
+
+                    result.prediction.probabilities.forEach((prob, idx) => {
+                        const bar = createProbBar('Class ' + idx, prob);
+                        responseDiv.appendChild(bar);
+                    });
+                }
             } catch (error) {
-                responseDiv.innerHTML = `
-                    <div class="error">
-                        <strong>Erreur :</strong><br>
-                        ${error.message}
-                    </div>
-                `;
-                console.error('Erreur:', error);
+                responseDiv.innerHTML = '<div class="error"><strong>Error:</strong> ' + error.message + '</div>';
+                console.error('Error:', error);
             }
         });
     </script>
