@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test API Flask - Enhanced Client</title>
+    <title>Dual Model Prediction Client</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 700px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background: #f4f7f8;
@@ -75,6 +75,18 @@
             color: #e74c3c;
             font-weight: 600;
         }
+        .result-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .result-section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
         .result-label {
             font-weight: 700;
             margin-bottom: 10px;
@@ -83,7 +95,6 @@
         }
         .prob-bar {
             height: 20px;
-            background: #3498db;
             border-radius: 4px;
             margin-bottom: 8px;
             transition: width 0.5s ease;
@@ -96,10 +107,23 @@
             margin-bottom: 4px;
             color: #34495e;
         }
+        .flag-prob {
+            background: #e74c3c;
+        }
+        .source-prob {
+            background: #3498db;
+        }
+        .separator {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>API Prediction Client</h1>
+    <h1>Dual Model Prediction Client</h1>
+    
     <form id="predictionForm" novalidate>
         <div>
             <label for="D0">Feature D0</label>
@@ -141,7 +165,7 @@
             <input type="number" id="D7" name="D7" step="any" required>
             <div class="tooltip">Enter value for feature D7</div>
         </div>
-        <button type="submit">Run Prediction</button>
+        <button type="submit">Run Predictions</button>
     </form>
     <div id="response"></div>
 
@@ -149,22 +173,59 @@
         const form = document.getElementById('predictionForm');
         const responseDiv = document.getElementById('response');
 
-        function createProbBar(label, value) {
+        function createProbBar(label, value, modelType) {
             const container = document.createElement('div');
             container.className = 'prob-container';
 
             const probLabel = document.createElement('div');
             probLabel.className = 'prob-label';
-            probLabel.textContent = label + ': ' + (value * 100).toFixed(2) + '%';
+            probLabel.textContent = `${label}: ${(value * 100).toFixed(2)}%`;
 
             const bar = document.createElement('div');
-            bar.className = 'prob-bar';
-            bar.style.width = (value * 100) + '%';
+            bar.className = `prob-bar ${modelType}-prob`;
+            bar.style.width = `${value * 100}%`;
+            bar.title = `${label}: ${(value * 100).toFixed(2)}%`;
 
             container.appendChild(probLabel);
             container.appendChild(bar);
 
             return container;
+        }
+
+        function displayResults(modelName, results) {
+            const section = document.createElement('div');
+            section.className = 'result-section';
+            
+            const title = document.createElement('h2');
+            title.textContent = modelName === 'flag' ? 'Flag Prediction (R/T)' : 'Source Prediction';
+            section.appendChild(title);
+
+            const predLabel = document.createElement('div');
+            predLabel.className = 'result-label';
+            
+            if (modelName === 'flag') {
+                const classLabel = results.predicted_class === 0 ? 'R' : 'T';
+                predLabel.textContent = `Predicted Flag: ${classLabel}`;
+            } else {
+                predLabel.textContent = `Predicted Source: ${results.class_labels[results.predicted_class]}`;
+            }
+            
+            section.appendChild(predLabel);
+
+            if (results.probabilities && results.probabilities.length > 0) {
+                const probTitle = document.createElement('div');
+                probTitle.className = 'result-label';
+                probTitle.textContent = 'Probabilities:';
+                section.appendChild(probTitle);
+
+                results.probabilities.forEach((prob, idx) => {
+                    const label = results.class_labels[idx];
+                    const bar = createProbBar(label, prob, modelName);
+                    section.appendChild(bar);
+                });
+            }
+
+            return section;
         }
 
         form.addEventListener('submit', async (e) => {
@@ -190,43 +251,33 @@
                 return;
             }
 
-            responseDiv.innerHTML = 'Sending prediction request...';
+            responseDiv.innerHTML = 'Processing predictions...';
 
             try {
                 const response = await fetch('http://localhost:5000/predict', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ data })
                 });
 
                 const result = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(result.error || 'Unknown error');
-                }
+                if (!response.ok) throw new Error(result.error || 'Unknown error');
 
-                // Display prediction result
                 responseDiv.innerHTML = '';
-                const predLabel = document.createElement('div');
-                predLabel.className = 'result-label';
-                predLabel.textContent = 'Predicted Class: ' + result.prediction.predicted_class;
-                responseDiv.appendChild(predLabel);
+                
+                // Display both results
+                const flagResults = displayResults('flag', result.predictions.flag);
+                const separator = document.createElement('hr');
+                separator.className = 'separator';
+                const sourceResults = displayResults('source', result.predictions.source);
+                
+                responseDiv.appendChild(flagResults);
+                responseDiv.appendChild(separator);
+                responseDiv.appendChild(sourceResults);
 
-                if (result.prediction.probabilities && result.prediction.probabilities.length > 0) {
-                    const probTitle = document.createElement('div');
-                    probTitle.className = 'result-label';
-                    probTitle.textContent = 'Class Probabilities:';
-                    responseDiv.appendChild(probTitle);
-
-                    result.prediction.probabilities.forEach((prob, idx) => {
-                        const bar = createProbBar('Class ' + idx, prob);
-                        responseDiv.appendChild(bar);
-                    });
-                }
             } catch (error) {
-                responseDiv.innerHTML = '<div class="error"><strong>Error:</strong> ' + error.message + '</div>';
+                responseDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${error.message}</div>`;
                 console.error('Error:', error);
             }
         });

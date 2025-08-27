@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graphique de Validation</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#8E6FF7'
+      },
+      borderRadius: {
+        'none': '0px',
+        'sm': '4px',
+        DEFAULT: '8px',
+        'md': '12px',
+        'lg': '16px',
+        'xl': '20px',
+        '2xl': '24px',
+        '3xl': '32px',
+        'full': '9999px',
+        'button': '8px'
+      }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-white min-h-screen">
+<div class="container mx-auto px-4 py-8 max-w-full">
+  <h1 class="text-2xl font-bold mb-8 text-gray-900">Graphique de Validation des Données</h1>
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <div id="chart" class="w-full h-[600px]"></div>
+  </div>
+  <div class="mt-4 bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-lg font-bold mb-4">Les pourcentages</h2>
+    <div id="percentage-controls" class="grid grid-cols-5 gap-4"></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const chartDom = document.getElementById('chart');
+  const myChart = echarts.init(chartDom);
+  const controlsContainer = document.getElementById('percentage-controls');
+  
+  // Données initiales avec pourcentages manuels
+  let dataWithPercentages = [
+    [0, true, 95],    [1, true, 95],   [2, true, 69],  [3, true, 67],  [4, true, 97],  [5, true, 100],
+    [6, true, 100],   [7, true, 100],   [8, true, 93],  [9, true, 100],  [10, true, 100],
+    [11, true, 100],   [12, true, 99],  [13, true, 80],  [14, true, 71],  [15, true, 73],
+    [16, true, 75],   [17, true, 92],  [18, true, 88],  [19, true, 100],  [20, true, 90],
+    [21, true, 95],   [22, true, 69],  [23, false, 67],  [24, true, 97],  [25, true, 100],
+    [26, true, 100],   [27, true, 93],   [28, true, 93],  [29, true, 100],  [30, true, 81],
+    [31, true, 100],   [32, true, 99],  [33, true, 74],  [34, true, 90],  [35, true, 73],
+    [36, true, 75],   [37, true, 92],  [38, true, 88],  [39, true, 80],  [40, true, 82],
+    [41, true, 95],   [42, true, 69],  [43, true, 67],  [44, true, 97],  [45, true, 100],
+    [46, true, 100],   [47, false, 67],   [48, true, 83],  [49, true, 100],  [50, true, 77],
+    [51, true, 100],   [52, true, 99],  [53, true, 69],  [54, false, 60],  [55, true, 73],
+    [56, true, 75],   [57, true, 92],  [58, true, 88],  [59, true, 95],  [60, true, 100],
+    [61, true, 86],   [62, true, 69],  [63, true, 67],  [64, true, 97],  [65, true, 100],
+    [66, true, 84],   [67, true, 100],   [68, true, 93],  [69, true, 100],  [70, true, 100],
+    [71, true, 82],   [72, true, 99],  [73, true, 90],  [74, true, 71],  [75, true, 73],
+    [76, true, 75],   [77, true, 92],  [78, true, 88],  [79, true, 100],  [80, true, 80],
+    [81, true, 100],   [82, true, 90],  [83, true, 67],  [84, true, 97],  [85, true, 100],
+    [86, true, 100],   [87, true, 99],   [88, false, 66],  [89, true, 100],  [90, false, 65],
+    [91, true, 100],   [92, true, 99],  [93, true, 69],  [94, true, 71],  [95, true, 73],
+    [96, true, 75],   [97, true, 92],  [98, true, 88],  [99, true, 100],  [100, true, 100]
+  ];
+
+  // Créer les contrôles pour modifier les pourcentages
+  function createPercentageControls() {
+    controlsContainer.innerHTML = '';
+    dataWithPercentages.forEach((item, index) => {
+      const controlDiv = document.createElement('div');
+      controlDiv.className = 'flex flex-col items-center';
+      
+      const label = document.createElement('label');
+      label.className = 'text-sm font-medium text-gray-700 mb-1';
+      label.textContent = `Point ${item[0]}`;
+      
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.max = '100';
+      input.value = item[2];
+      input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary';
+      input.addEventListener('change', (e) => {
+        const newValue = parseInt(e.target.value);
+        if (!isNaN(newValue) && newValue >= 0 && newValue <= 100) {
+          dataWithPercentages[index][2] = newValue;
+          updateChart();
+        } else {
+          e.target.value = item[2]; // Revert if invalid
+        }
+      });
+      
+      controlDiv.appendChild(label);
+      controlDiv.appendChild(input);
+      controlsContainer.appendChild(controlDiv);
+    });
+  }
+
+  // Mettre à jour le graphique
+  function updateChart() {
+    const option = {
+      animation: false,
+      title: {
+        text: 'Pourcentages de Validation',
+        left: 'center',
+        textStyle: {
+          color: '#1f2937',
+          fontSize: 18,
+          fontWeight: 'bold'
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderColor: '#eee',
+        borderWidth: 1,
+        textStyle: {
+          color: '#1f2937'
+        },
+        formatter: function(params) {
+          const dataPoint = params[0];
+          const pointId = dataPoint.data.value[0];
+          const pointPercentage = dataPoint.data.value[1];
+          return `ID ${pointId}: ${pointPercentage}%`;
+        }
+      },
+      grid: {
+        top: 80,
+        bottom: 80,
+        left: 80,
+        right: 40
+      },
+      xAxis: {
+        name: 'Id',
+        nameGap: 30,
+        type: 'value',
+        min: 0,
+        max: 100,
+        interval: 2,
+        axisLine: {
+          lineStyle: {
+            color: '#1f2937'
+          }
+        },
+        axisLabel: {
+          color: '#1f2937'
+        }
+      },
+      yAxis: {
+        name: 'Pourcentage',
+        type: 'value',
+        min: 0,
+        max: 100,
+        interval: 10,
+        axisLine: {
+          lineStyle: {
+            color: '#1f2937'
+          }
+        },
+        axisLabel: {
+          color: '#1f2937',
+          formatter: '{value}%'
+        }
+      },
+      series: [{
+        data: dataWithPercentages.map(item => ({
+          value: [item[0], item[2]], // Utiliser directement le pourcentage comme valeur Y
+          symbolSize: 12,
+          itemStyle: {
+            color: item[1] ? '#4CAF50' : '#FF4444' // Conserver les couleurs pour référence
+          },
+          label: {
+            show: false // Ici on désactive les labels sur les points
+          }
+        })),
+        type: 'line',
+        smooth: false,
+        lineStyle: {
+          color: '#8E6FF7',
+          width: 2,
+          type: 'solid',
+          cap: 'square'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+            offset: 0,
+            color: 'rgba(142, 111, 247, 0.2)'
+          }, {
+            offset: 1,
+            color: 'rgba(142, 111, 247, 0.05)'
+          }])
+        }
+      }]
+    };
+    myChart.setOption(option);
+  }
+
+  // Initialisation
+  createPercentageControls();
+  updateChart();
+
+  window.addEventListener('resize', function() {
+    myChart.resize();
+  });
+});
+</script>
+</body>
+</html>
